@@ -1,6 +1,5 @@
 const http = require('http');
 const WebSocket = require('ws');
-
 const PORT = process.env.PORT || 3000;
 
 const server = http.createServer((req, res) => {
@@ -15,10 +14,19 @@ wss.on('connection', (ws) => {
     ws.send(JSON.stringify({ message: 'Conectado com sucesso ao Render!' }));
 
     ws.on('message', (message) => {
-        // Se a mensagem vier como Buffer, converte para texto
         const msgTexto = message.toString();
         console.log(`Recebido: ${msgTexto}`);
-        ws.send(`Eco do Servidor: ${msgTexto}`);
+
+        // Repassa a mensagem para TODOS os outros clientes conectados
+        wss.clients.forEach((cliente) => {
+            if (cliente !== ws && cliente.readyState === WebSocket.OPEN) {
+                cliente.send(JSON.stringify({ message: msgTexto }));
+            }
+        });
+    });
+
+    ws.on('close', () => {
+        console.log('Cliente desconectado.');
     });
 });
 
